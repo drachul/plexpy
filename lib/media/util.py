@@ -1,6 +1,27 @@
 """
 """
 import re
+from difflib import SequenceMatcher
+
+
+def sanitize_path(p):
+    p = re.sub(r"[\*\?]", "", p)
+    p = re.sub(r"\s*&\s*", " and ", p)
+    p = re.sub(r": ", " - ", p)
+    p = re.sub(r":", "-", p)
+    p = re.sub(r"\\", "-", p)
+    p = re.sub(r"/", "-", p)
+    p = re.sub(r" {2,}", " ", p)
+    return p.strip()
+
+
+def simplify_string(s):
+    s = re.sub(r"[^a-zA-Z0-9]+", "", s)
+    return s.strip().lower()
+
+
+def string_similarity(a, b):
+    return SequenceMatcher(None, a, b).ratio()
 
 
 def clean_string(s):
@@ -16,7 +37,6 @@ def listRegexDel(l, s, f=0):
 
 
 def clean_media(s):
-
     # remove scene tags
     scene_tags = ['-2HD',
                   '-aAF', '-AMIABLE', '-AVCHD',
