@@ -1,23 +1,27 @@
+# -*- coding: utf-8 -*-
 """
+
 """
+
 import re
 from difflib import SequenceMatcher
 
 
 def sanitize_path(p):
-    p = re.sub(r"[\*\?]", "", p)
-    p = re.sub(r"\s*&\s*", " and ", p)
-    p = re.sub(r": ", " - ", p)
-    p = re.sub(r":", "-", p)
-    p = re.sub(r"\\", "-", p)
-    p = re.sub(r"/", "-", p)
-    p = re.sub(r" {2,}", " ", p)
-    return p.strip()
+    p = re.sub(ur"[\*\?]", "", p)
+    p = re.sub(ur"\s*&\s*", " and ", p)
+    p = re.sub(ur": ", " - ", p)
+    p = re.sub(ur":", "-", p)
+    p = re.sub(ur"\\", "-", p)
+    p = re.sub(ur"/", "-", p)
+    p = re.sub(ur" {2,}", " ", p)
+    return p.strip().decode('utf-8')
 
 
 def simplify_string(s):
-    s = re.sub(r"[^a-zA-Z0-9]+", "", s)
-    return s.strip().lower()
+    s = re.sub(ur"[^\wÀ-ý]+", "", s, re.UNICODE)
+    s = re.sub(ur"_+", "", s)
+    return s.strip().lower().decode('utf-8')
 
 
 def string_similarity(a, b):
@@ -25,14 +29,16 @@ def string_similarity(a, b):
 
 
 def clean_string(s):
-    # remove non-alphanumeric characters
-    s = re.sub(r"[^a-zA-Z0-9 -]", " ", s)
-    s = re.sub(r" {2,}", " ", s)
+    s = re.sub(ur"_", " ", s)
+    # s = re.sub(ur"[\W]", " ", s, re.UNICODE)
+    # hack because \W doesn't work with UTF-8 strings?
+    s = re.sub(ur"[^\wÀ-ý ]", " ", s, re.UNICODE)
+    s = re.sub(ur" {2,}", " ", s)
     return s.strip()
 
 
 def listRegexDel(l, s, f=0):
-    rx = r'({0})'.format("|".join(l))
+    rx = ur'({0})'.format("|".join(l))
     return re.sub(rx, "", s, flags=f)
 
 
@@ -61,7 +67,7 @@ def clean_media(s):
                   '-TASTETV', '-TiMELORDS', '-TrollU?HD',
                   '-VoMiT',
                   '-W4F', 'www\.torrenting\.com']
-    s = listRegexDel(scene_tags, s)
+    s = listRegexDel(scene_tags, s, re.UNICODE)
 
     # remove source tags
     source_tags = ['hd\W?dvd\W?(rip)?', 'dvd(\W?rip)?',
@@ -88,6 +94,22 @@ def clean_media(s):
     s = listRegexDel(aud_tags, s, re.I)
 
     return clean_string(s)
+
+
+def detect_meta(path, min_confidence=0.0):
+    import movie
+    import music
+    import show
+    best_c = 0.0
+    meta = None
+    media = [movie.Meta(path), music.Meta(path), show.Meta(path)]
+    for m in media:
+        c = m.confidence()
+        if c > min_confidence and c > best_c:
+            meta = m
+            best_c = c
+
+    return meta, best_c
 
 
 class Confidence:

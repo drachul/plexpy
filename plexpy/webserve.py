@@ -2608,6 +2608,17 @@ class WebInterface(object):
             "movie_watched_percent": plexpy.CONFIG.MOVIE_WATCHED_PERCENT,
             "tv_watched_percent": plexpy.CONFIG.TV_WATCHED_PERCENT,
             "music_watched_percent": plexpy.CONFIG.MUSIC_WATCHED_PERCENT
+            "mm_movie_interval": plexpy.CONFIG.MM_MOVIE_INTERVAL,
+            "mm_movie_upload_dir": plexpy.CONFIG.MM_MOVIE_UPLOAD_DIR,
+            "mm_movie_library_dir": plexpy.CONFIG.MM_MOVIE_LIBRARY_DIR,
+            "mm_movie_apikey": plexpy.CONFIG.MM_MOVIE_APIKEY,
+            "mm_show_interval": plexpy.CONFIG.MM_SHOW_INTERVAL,
+            "mm_show_upload_dir": plexpy.CONFIG.MM_SHOW_UPLOAD_DIR,
+            "mm_show_library_dir": plexpy.CONFIG.MM_SHOW_LIBRARY_DIR,
+            "mm_music_interval": plexpy.CONFIG.MM_MUSIC_INTERVAL,
+            "mm_music_upload_dir": plexpy.CONFIG.MM_MUSIC_UPLOAD_DIR,
+            "mm_music_library_dir": plexpy.CONFIG.MM_MUSIC_LIBRARY_DIR,
+            "pms_version": plexpy.CONFIG.PMS_VERSION
         }
 
         return serve_template(templatename="settings.html", title="Settings", config=config, kwargs=kwargs)

@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+"""
+
 import json
 import os.path
 import re
@@ -20,7 +24,10 @@ class Probe:
 
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         out, err = proc.communicate()
-        return json.loads(out.decode("utf-8"))
+        if out is not None and len(out):
+            return json.loads(out)
+        else:
+            return None
 
     def __is_stream_actually_video(self, stream):
         cn = stream['codec_name']
@@ -84,14 +91,14 @@ class Probe:
 
     def __extension(self, format):
         formats = {
-            'asf': 'wmv',
-            'avi': 'avi',
-            'flac': 'flac',
-            'mp3': 'mp3',
-            'mpeg': 'mpg',
-            'mpegts': 'ts',
-            'matroska,webm': 'mkv',
-            'ogg': 'ogm',
+            'asf': u'wmv',
+            'avi': u'avi',
+            'flac': u'flac',
+            'mp3': u'mp3',
+            'mpeg': u'mpg',
+            'mpegts': u'ts',
+            'matroska,webm': u'mkv',
+            'ogg': u'ogm',
         }
         fn = format['format_name']
         if fn in formats:
@@ -122,7 +129,7 @@ class Probe:
                     else:
                         format += 'i'
                 break
-        return format
+        return format.decode('utf-8')
 
     def __video_description(self, stream):
         format = '{0} {1}'.format(stream['codec_long_name'],
@@ -189,7 +196,8 @@ class Probe:
                         best_vid = self.__better_video_stream(stream, best_vid)
                     if 'frames' in probe:
                         for frame in probe['frames']:
-                            if frame['stream_index'] == stream['index']:
+                            # some frames may not have a stream index
+                            if 'stream_index' in frame and frame['stream_index'] == stream['index']:
                                 is_progressive = frame['interlaced_frame'] == 0
                                 stream['progressive'] = is_progressive
                                 break

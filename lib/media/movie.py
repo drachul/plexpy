@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 """
 """
 from datetime import date
@@ -26,7 +26,7 @@ class Meta:
 
         # extract the year if available (scan backwards)
         ym = []
-        for m in re.finditer(r"((?:19|20)\d{2})", path):
+        for m in re.finditer(ur"((?:19|20)\d{2})", path):
             y = int(m.group())
             if y <= date.today().year:
                 ym.append([y, m.start()])
@@ -36,7 +36,7 @@ class Meta:
             yearpos = ym[-1][1]
 
         # extract the part if available
-        m = re.search(r"""(?:
+        m = re.search(ur"""(?:
                         p(?:ar)?t|
                         cd|
                         disc
@@ -95,22 +95,24 @@ class Meta:
 
         self.__dict__['has_video'] = False
         self.__dict__['video_format'] = None
+        self.__dict__['duration'] = 0.0
         if probe.format is not None:
-            self.__dict__['duration'] = float(probe.format["duration"])
+            if 'duration' in probe.format:
+                self.__dict__['duration'] = float(probe.format['duration'])
             ext = probe.extension()
             if ext is not None:
                 self.__dict__['extension'] = ext
             if 'tags' in probe.format:
                 for k, v in probe.format['tags'].iteritems():
-                    if re.search(r"^title$", k, re.I):
+                    if re.search(ur"^title$", k, re.I):
                         t, y, p = self.__parse_path(v)
-                        self.__dict__['title'] = t
+                        self.__dict__['title'] = t.decode('utf-8')
                         if self.__dict__['year'] == -1:
                             self.__dict__['year'] = y
                         if self.__dict__['part'] == -1:
                             self.__dict__['part'] = p
-                    elif re.search(r"^(date|year)$", k, re.I):
-                        m = re.search(r"((?:19|20)\d{2})", v)
+                    elif re.search(ur"^(date|year)$", k, re.I):
+                        m = re.search(ur"((?:19|20)\d{2})", v)
                         if m is not None:
                             self.__dict__['year'] = int(m.group(1))
 
@@ -121,12 +123,14 @@ class Meta:
     def __parse_support_file(self, path):
         import fileinput
         # print '__parse_support_file("{0}")'.format(path)
+        lines = fileinput.input(path)
         # right now we're only looking for an imdb ID
-        for line in fileinput.input(path):
-            m = re.search(r"(tt(\d{7}))", line, re.I)
+        for line in lines:
+            m = re.search(ur"(tt(\d{7}))", line, re.I)
             if m is not None:
-                self.__dict__['imdbid'] = m.group(1)
+                self.__dict__['imdbid'] = m.group(1).decode('utf-8')
                 return True
+        lines.close()
         return False
 
     def __process_support_files(self, path, base_dir):
@@ -156,9 +160,14 @@ class Meta:
 
     def __process(self, path, base_dir,
                   process_path=True, process_probe=True,
-                  process_support_files=True):
+                  process_support_files=False):
 
-        # print '__process("{0}", "{1}", process_path={2}, process_probe={3}, process_support_files={4})'.format(path, base_dir, process_path, process_probe, process_support_files)
+        """
+        Assumes path and base_dir are unicode strings
+        """
+
+        # print u'__process("{0}", "{1}", process_path={2}, process_probe={3},
+        # process_support_files={4})'.format(path, base_dir, process_path, process_probe, process_support_files)
 
         modpath = self.__modified_path(path, base_dir)
         self.__dict__['modpath'] = modpath
@@ -249,10 +258,10 @@ class Meta:
 
 if __name__ == "__main__":
     import sys
-    path = sys.argv[1]
+    path = sys.argv[1].decode('utf-8')
     base_dir = None
     if len(sys.argv) > 2:
-        base_dir = sys.argv[2]
+        base_dir = sys.argv[2].decode('utf-8')
     movie = Meta(path, base_dir=base_dir)
     if movie is not None:
         print 'Input = "{0}" (confidence: {1})'.format(path, movie.confidence)

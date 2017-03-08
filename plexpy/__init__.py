@@ -39,6 +39,7 @@ import logger
 import mobile_app
 import notification_handler
 import notifiers
+import media_manager
 import plextv
 import pmsconnect
 import versioncheck
@@ -366,6 +367,28 @@ def initialize_scheduler():
             schedule_job(activity_pinger.check_server_response, 'Check server response',
                          hours=0, minutes=0, seconds=response_seconds)
 
+        # schedule jobs for the media manager
+        mm_movie_interval = CONFIG.MM_MOVIE_INTERVAL
+        if mm_movie_interval > 0:
+            schedule_job(media_manager.scan_media,
+                         'Media Manager Scan Movies',
+                         hours=0, minutes=mm_movie_interval, seconds=0,
+                         args=['movies'])
+
+        mm_show_interval = CONFIG.MM_SHOW_INTERVAL
+        if mm_show_interval > 0:
+            schedule_job(media_manager.scan_media,
+                         'Media Manager Scan TV Shows',
+                         hours=0, minutes=mm_show_interval, seconds=0,
+                         args=['shows'])
+
+        mm_music_interval = CONFIG.MM_MUSIC_INTERVAL
+        if mm_music_interval > 0:
+            schedule_job(media_manager.scan_media,
+                         'Media Manager Scan Music',
+                         hours=0, minutes=mm_music_interval, seconds=0,
+                         args=['music'])
+
         # Start scheduler
         if start_jobs and len(SCHED.get_jobs()):
             try:
@@ -548,6 +571,37 @@ def dbcheck():
     )
     c_db.execute(
         'CREATE UNIQUE INDEX IF NOT EXISTS idx_tvmaze_lookup_thetvdb_id ON tvmaze_lookup (thetvdb_id);'
+
+    # mm_movies table :: This table keeps record of incoming movie files needing to be managed
+    c_db.execute(
+        'CREATE TABLE IF NOT EXISTS mm_movies ('
+        'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'path TEXT UNIQUE, title TEXT, year INTEGER, '
+        'part INTEGER, movie_id TEXT, '
+        'confidence REAL, processed BOOLEAN DEFAULT 0, '
+        'is_new BOOLEAN DEFAULT 0, upgrade BOOLEAN DEFAULT 0)'
+    )
+
+    # mm_shows table :: This table keeps record of incoming shows files needing to be managed
+    c_db.execute(
+        'CREATE TABLE IF NOT EXISTS mm_shows ('
+        'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'path TEXT UNIQUE, show_name TEXT, season INTEGER, '
+        'episode INTEGER, episode_last INTEGER, episode_name TEXT, '
+        'show_id TEXT, episode_id TEXT, '
+        'confidence REAL, processed BOOLEAN DEFAULT 0, '
+        'is_new BOOLEAN DEFAULT 0, upgrade BOOLEAN DEFAULT 0)'
+    )
+
+    # mm_music table :: This table keeps record of incoming music files needing to be managed
+    c_db.execute(
+        'CREATE TABLE IF NOT EXISTS mm_music ('
+        'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'path TEXT UNIQUE, artist TEXT, album TEXT, year INTEGER, '
+        'track INTEGER, title TEXT, '
+        'artist_id TEXT, album_id TEXT, track_id TEXT, '
+        'confidence REAL, processed BOOLEAN DEFAULT 0, '
+        'is_new BOOLEAN DEFAULT 0, upgrade BOOLEAN DEFAULT 0)'
     )
 
     # Upgrade sessions table from earlier versions

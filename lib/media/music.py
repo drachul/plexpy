@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 """
 from probe import Probe
@@ -12,15 +13,15 @@ class Meta:
 
     def __clean_music(self, path):
         # remove anything that isn't alphanumeric or a sparator
-        path = re.sub(r"[^a-zA-Z0-9 ._-]", " ", path, re.I)
+        path = re.sub(ur"[^\wÀ-ý .-]", " ", path, re.I | re.UNICODE)
         # replace '.' and '_' separators with '-'
-        path = re.sub(r"[._]", "-", path)
+        path = re.sub(ur"[._]", "-", path)
         # remove duplicate separators
-        path = re.sub(r"-{2,}", "-", path)
+        path = re.sub(ur"-{2,}", "-", path)
 
         # if there are more than 3 separators, get rid of all of them
         if path.count('-') > 3:
-            path = re.sub(r"-+", " ", path)
+            path = re.sub(ur"-+", " ", path)
 
         # path = util.clean_string(path)
         # remove format tags
@@ -46,7 +47,7 @@ class Meta:
         path = self.__clean_music(path)
 
         # <track> | <artist> | <album> | <title>
-        m1 = re.search(r"""^(?P<track>\d{1,2})
+        m1 = re.search(ur"""^(?P<track>\d{1,2})
         \s*[-]?\s*
         (?P<artist>[^-]+)
         \s*[-]\s*
@@ -55,7 +56,7 @@ class Meta:
         (?P<title>[^-]+)$""", path, re.X)
 
         # <artist> | <album> | <track> | <title>
-        m2 = re.search(r"""^
+        m2 = re.search(ur"""^
         (?P<artist>[^-]+)
         \s*[-]\s*
         (?P<album>[^-]+)
@@ -65,7 +66,7 @@ class Meta:
         (?P<title>[^-]+)$""", path, re.X)
 
         # <track> | <title>
-        m3 = re.search(r"^\s*(\d{1,2})(?:\s*-\s*|\s+)([^-]+)$", path)
+        m3 = re.search(ur"^\s*(\d{1,2})(?:\s*-\s*|\s+)([^-]+)$", path)
 
         if m1 is not None:
             track = int(m1.group('track'))
@@ -82,14 +83,14 @@ class Meta:
             title = m3.group(2)
         else:
             # attempt to extract a year
-            m = re.search(r"((?:19|20)\d{2})", path)
+            m = re.search(ur"((?:19|20)\d{2})", path)
             if m is not None:
                 year = int(m.group(1))
                 yearstart = m.start(1)
                 yearend = m.end(1)
 
             # attempt to extract a track number
-            m = re.search(r"(?:^|\D)(\d{1,2})\D", path)
+            m = re.search(ur"(?:^|\D)(\d{1,2})\D", path)
             if m is not None:
                 track = int(m.group(1))
                 trackstart = m.start(1)
@@ -98,7 +99,7 @@ class Meta:
             if yearstart != -1:
                 if yearstart > 2:
                     artist = util.clean_string(path[:yearstart-1])
-                    m = re.search(r"^([^-]+)\s*-\s*([^-]+)$", artist)
+                    m = re.search(ur"^([^-]+)\s*-\s*([^-]+)$", artist)
                     if m is not None:
                         artist = util.clean_string(m.group(1))
                         album = util.clean_string(m.group(2))
@@ -160,32 +161,36 @@ class Meta:
         self.__dict__['extension'] = ext
 
     def __process_probe(self, path):
+        """ Process a media probe for meta information """
         self.__dict__['has_video'] = False
         self.__dict__['video_format'] = None
+        self.__dict__['duration'] = 0.0
         probe = Probe(path)
         has_artist = False
         has_year = False
         if probe.format is not None:
+            if 'duration' in probe.format:
+                self.__dict__['duration'] = float(probe.format['duration'])
             if 'tags' in probe.format:
                 for k, v in probe.format['tags'].iteritems():
-                    if not has_artist and re.search(r"^artist", k, re.I):
-                        self.__dict__['artist'] = v
-                    elif re.search(r"album_?artist", k, re.I):
-                        self.__dict__['artist'] = v
+                    if not has_artist and re.search(ur"^artist", k, re.I):
+                        self.__dict__['artist'] = v.decode('utf-8')
+                    elif re.search(ur"album_?artist", k, re.I):
+                        self.__dict__['artist'] = v.decode('utf-8')
                         has_artist = True
-                    elif re.search(r"album", k, re.I):
-                        self.__dict__['album'] = v
-                    elif not has_year and re.search(r"^year|date$", k, re.I):
-                        m = re.search(r"((?:19|20)\d{2})", v, re.I)
+                    elif re.search(ur"album", k, re.I):
+                        self.__dict__['album'] = v.decode('utf-8')
+                    elif not has_year and re.search(ur"^year|date$", k, re.I):
+                        m = re.search(ur"((?:19|20)\d{2})", v, re.I)
                         if m is not None:
                             self.__dict__['year'] = int(m.group(1))
                             has_year = True
-                    elif re.search(r"^track$", k, re.I):
-                        m = re.search(r"(\d+)", v)
+                    elif re.search(ur"^track$", k, re.I):
+                        m = re.search(ur"(\d+)", v)
                         if m is not None:
                             self.__dict__['track'] = int(m.group(1))
-                    elif re.search(r"title", k, re.I):
-                            self.__dict__['title'] = v
+                    elif re.search(ur"title", k, re.I):
+                            self.__dict__['title'] = v.decode('utf-8')
 
             ext = probe.extension()
             if ext is not None:
@@ -204,6 +209,9 @@ class Meta:
 
     def __process(self, path, base_dir,
                   process_path=True, process_probe=True):
+        """
+        Assumes path and base_dir are unicode strings
+        """
 
         modpath = self.__modified_path(path, base_dir)
         self.__dict__['modpath'] = modpath
@@ -233,7 +241,7 @@ class Meta:
         if not self.has_audio:
             return 0.0
 
-        # the other half is determined by the duration and format of the media
+        # the other half is determined by format of the media
         c_media = util.Confidence()
         c_media.add(not self.has_video)
         c_media.add(self.size < Meta.max_size)
@@ -285,10 +293,10 @@ class Meta:
 
 if __name__ == "__main__":
     import sys
-    path = sys.argv[1]
+    path = sys.argv[1].decode('utf-8')
     base_dir = None
     if len(sys.argv) > 2:
-        base_dir = sys.argv[2]
+        base_dir = sys.argv[2].decode('utf-8')
     music = Meta(path, base_dir)
     if music is not None:
         print 'Input = "{0}" (confidence: {1})'.format(path, music.confidence)

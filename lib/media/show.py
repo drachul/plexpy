@@ -1,5 +1,8 @@
+# -*- coding: utf-8 -*-
 """
+
 """
+
 from probe import Probe
 import os.path
 import re
@@ -22,15 +25,15 @@ class Meta:
 
         # s??e?? type episodes
         m1 = re.search(
-            r"s(\d{1,2})[\s\._]*((?:(?:\s*e|-e?|\+e?|&e?)\d{1,3})+)", p, re.I)
+            ur"s(\d{1,2})[\s\._]*((?:(?:\s*e|-e?|\+e?|&e?)\d{1,3})+)", p, re.I)
         # SSxEE type episodes
-        m2 = re.search(r"(\d{1,2})((?:\s*(?:x|-)\s*\d{1,3})+)", p, re.I)
+        m2 = re.search(ur"(\d{1,2})((?:\s*(?:x|-)\s*\d{1,3})+)", p, re.I)
         # Season by itself
-        m3 = re.search(r"s(?:eason)?\W?(\d{1,2})", p, re.I)
+        m3 = re.search(ur"s(?:eason)?\W?(\d{1,2})", p, re.I)
         # Episode by itself (start of name)
-        m4 = re.search(r"^\s*(?:p(?:ar)?t)?\s*(\d{1,3})", p, re.I)
+        m4 = re.search(ur"^\s*(?:p(?:ar)?t)?\s*(\d{1,3})", p, re.I)
         # Episode by itself - miniseries (X of Y)
-        m5 = re.search(r"(\d{1,2})\W?of\W?(\d{1,2})", p, re.I)
+        m5 = re.search(ur"(\d{1,2})\W?of\W?(\d{1,2})", p, re.I)
         if m1 is not None:
             season = int(m1.group(1))
 
@@ -42,7 +45,7 @@ class Meta:
             if epos < len(p)-1:
                 episode_name = util.clean_string(p[epos:])
 
-            for ep in re.finditer(r"\s*(?:e|-e?|\+e?|&e?)(\d{1,3})",
+            for ep in re.finditer(ur"\s*(?:e|-e?|\+e?|&e?)(\d{1,3})",
                                   m1.group(2), re.I):
                 e = int(ep.group(1))
                 if episode == -1:
@@ -59,7 +62,7 @@ class Meta:
             if epos < len(p)-1:
                 episode_name = util.clean_string(p[epos:])
 
-            for ep in re.finditer(r"\s*-?\s*(\d{1,3})", m2.group(2), re.I):
+            for ep in re.finditer(ur"\s*-?\s*(\d{1,3})", m2.group(2), re.I):
                 e = int(ep.group(1))
                 if episode == -1:
                     episode = e
@@ -85,8 +88,8 @@ class Meta:
             epos = m5.end(2)
             if epos < len(p)-1:
                 episode_name = util.clean_string(p[epos:])
-        elif re.search(r"miniseries", p):
-            p = util.clean_string(re.sub(r"miniseries", p, flags=re.I))
+        elif re.search(ur"miniseries", p):
+            p = util.clean_string(re.sub(ur"miniseries", p, flags=re.I))
 
         return show_name, season, episode, episode_last, episode_name
 
@@ -100,7 +103,7 @@ class Meta:
         no_ext_path, ext_with_dot = os.path.splitext(path)
         ext = ext_with_dot[1:].lower()
 
-        for p in reversed(no_ext_path.split('/')):
+        for p in reversed(no_ext_path.split(os.sep)):
             # if we have all the info we want, break out of the loop
             if show_name is not None and season != -1 and episode != -1:
                 break
@@ -126,11 +129,15 @@ class Meta:
         self.__dict__['extension'] = ext
 
     def __process_probe(self, path):
+        probe = Probe(path)
+
         self.__dict__['has_video'] = False
         self.__dict__['video_format'] = None
-        probe = Probe(path)
+        self.__dict__['duration'] = 0.0
+
         if probe.format is not None:
-            self.__dict__['duration'] = float(probe.format["duration"])
+            if 'duration' in probe.format:
+                self.__dict__['duration'] = float(probe.format['duration'])
             ext = probe.extension()
             if ext is not None:
                 self.__dict__['extension'] = ext
@@ -142,7 +149,7 @@ class Meta:
     def __modified_path(self, path, base_dir):
         if base_dir is not None:
             path = path.replace(base_dir, '')
-        if path[0] == '/':
+        if path[0] == u'/':
             path = path[1:]
         return path
 
@@ -188,25 +195,25 @@ class Meta:
         if self.show_name is not None:
             out = self.show_name
             if self.season != -1:
-                if self.episode_last != -1:
-                    out += ' s{0:0=2}e{1:0=2}-e{2:0=2}'.format(
+                if self.episode_last != self.episode:
+                    out += u' s{0:0=2}e{1:0=2}-e{2:0=2}'.format(
                         self.season, self.episode, self.episode_last)
                 else:
-                    out += ' s{0:0=2}e{1:0=2}'.format(
+                    out += u' s{0:0=2}e{1:0=2}'.format(
                         self.season, self.episode)
 
             if self.episode_name is not None:
-                out += ' {0}'.format(self.episode_name)
+                out += u' {0}'.format(self.episode_name)
 
-            out += '.{0}'.format(self.extension)
+            out += u'.{0}'.format(self.extension)
         return out
 
     def __build_dir(self):
-        out = ''
+        out = u''
         if self.show_name is not None:
             out = self.show_name
             if self.season != -1:
-                out += '/Season {0:0=2}'.format(self.season)
+                out += u'/Season {0:0=2}'.format(self.season)
         return out
 
     def __getattr__(self, attr):
@@ -235,11 +242,11 @@ class Meta:
 
 if __name__ == "__main__":
     import sys
-    path = sys.argv[1]
+    path = sys.argv[1].decode('utf-8')
     base_dir = None
     if len(sys.argv) > 2:
-        base_dir = sys.argv[2]
+        base_dir = sys.argv[2].decode('utf-8')
     show = Meta(path, base_dir)
     if show is not None:
-        print 'Input = "{0}" (confidence: {1})'.format(path, show.confidence)
-        print 'Output = "{0}/{1}"'.format(show.dir, show.file)
+        print u'Input = "{0}" (confidence: {1})'.format(path, show.confidence)
+        print u'Output = "{0}/{1}"'.format(show.dir, show.file)
