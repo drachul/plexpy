@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-
+General utility functions and classes used for the media modules.
 """
 
 import re
@@ -15,7 +15,7 @@ def sanitize_path(p):
     p = re.sub(ur"\\", "-", p)
     p = re.sub(ur"/", "-", p)
     p = re.sub(ur" {2,}", " ", p)
-    return p.strip().decode('utf-8')
+    return p.strip()
 
 
 def simplify_string(s):
@@ -37,9 +37,17 @@ def clean_string(s):
     return s.strip()
 
 
-def listRegexDel(l, s, f=0):
+def list_re_del(l, s, f=0):
     rx = ur'({0})'.format("|".join(l))
     return re.sub(rx, "", s, flags=f)
+
+
+def list_re_search(l, s, f=0):
+    for p in l:
+        m = re.search(p, s, f)
+        if m is not None:
+            return m
+    return None
 
 
 def clean_media(s):
@@ -49,49 +57,52 @@ def clean_media(s):
                   '-BATV', '-BLOW', '-BRMP', '-BTN', '-BTW',
                   '-CiNEFiLE', '-CREEPSHOW', '-CROOKS', '-CULTHD',
                   '-DEFLATE', '-DIMENSION',
-                  '-ehMD', '\[ettv\]', '-EVO', '-EVOLVE',
+                  '-ehMD', '\[ettv\]', '\[EtHD\]',
+                  '(-ETRG|\[ETRG\])', '-EVO', '-EVOLVE',
                   '-FGT',
                   '-GECKOS', '-GUACAMOLE',
                   '-HDB', '-hV',
+                  '-JYK',
                   '-KILLERS',
                   '-KiNGS',
                   '-LiBRARiANS',
                   '-MARS', '-MAXSPEED', '-MCH', '-MOROSE', '-MOVEE',
-                  '-mSD', 'MVGroup(?:\.org)?',
+                  '-mSD', 'MVGroup(?:\.org)?', 'MkvCage',
                   '-NOGRP', '-NTb',
                   '-PSYCHD',
                   '-REMARKABLE',
-                  '-SADPANDA', '-SB', '-SERIOUSLY', '-SiNNERS', '-SORNY',
-                  '-SPARKS', '-SPRiNTER',
+                  '-SADPANDA', '-SB', '-SERIOUSLY', 'ShAaNiG',
+                  '-SiNNERS', '-SORNY', '-SPARKS', '-SPRiNTER',
                   '-RARBG', '\[rarbg\]', '\[rartv\]', '-RTN',
                   '-TASTETV', '-TiMELORDS', '-TrollU?HD',
                   '-VoMiT',
-                  '-W4F', 'www\.torrenting\.com']
-    s = listRegexDel(scene_tags, s, re.UNICODE)
+                  '-W4F', 'www\.torrenting\.com',
+                  'YIFY']
+    s = list_re_del(scene_tags, s, re.UNICODE)
 
     # remove source tags
     source_tags = ['hd\W?dvd\W?(rip)?', 'dvd(\W?rip)?',
                    'blu-?ray', 'bd(\W?rip)?',
                    '(hd)?tv(\W?rip)?', 'web\W?(rip|dl)?']
-    s = listRegexDel(source_tags, s, re.I)
+    s = list_re_del(source_tags, s, re.I)
 
     # remove video format tags
     vidfmt_tags = ['4k', '2160p', '1080[ip]', '720p', '480p', 'hd', 'sd']
-    s = listRegexDel(vidfmt_tags, s, re.I)
+    s = list_re_del(vidfmt_tags, s, re.I)
 
     # remove video codec tags
     vidcodec_tags = ['x264', 'x265',
                      'h\.?264', 'h\.265',
                      'mpe?g-?4?', '(8|10)-?bit',
                      'xvid', 'divx']
-    s = listRegexDel(vidcodec_tags, s, re.I)
+    s = list_re_del(vidcodec_tags, s, re.I)
 
     # remove audio tags
     aud_tags = ['ac\W?3\W?(\d+\.\d)?',
                 'dd\W?(\d+\.\d)',
                 'aac\W?(\d\.\d)?',
                 'mp3\W?(\d\.\d)?']
-    s = listRegexDel(aud_tags, s, re.I)
+    s = list_re_del(aud_tags, s, re.I)
 
     return clean_string(s)
 
@@ -113,11 +124,10 @@ def detect_meta(path, min_confidence=0.0):
 
 
 class Confidence:
-
     """
-    Confidence
+    Simple utility class to allow for a count/rate of confidence
+    to be calculated from a running total of added conditions
     """
-
     def __init__(self):
         self.__count = 0
         self.__succeeded = 0
@@ -129,3 +139,17 @@ class Confidence:
 
     def rate(self):
         return float(self.__succeeded) / float(self.__count)
+
+
+class Locker:
+    def __init__(self, lock):
+        self.lock = lock
+
+    def __enter__(self):
+        # print "Locking..."
+        self.lock.acquire()
+        return None
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        # print "Unlocking..."
+        self.lock.release()

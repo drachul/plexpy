@@ -2615,6 +2615,7 @@ class WebInterface(object):
             "mm_show_interval": plexpy.CONFIG.MM_SHOW_INTERVAL,
             "mm_show_upload_dir": plexpy.CONFIG.MM_SHOW_UPLOAD_DIR,
             "mm_show_library_dir": plexpy.CONFIG.MM_SHOW_LIBRARY_DIR,
+            "mm_show_apikey": plexpy.CONFIG.MM_SHOW_APIKEY,
             "mm_music_interval": plexpy.CONFIG.MM_MUSIC_INTERVAL,
             "mm_music_upload_dir": plexpy.CONFIG.MM_MUSIC_UPLOAD_DIR,
             "mm_music_library_dir": plexpy.CONFIG.MM_MUSIC_LIBRARY_DIR,

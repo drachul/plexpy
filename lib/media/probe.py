@@ -12,33 +12,8 @@ class Probe:
     """simple media info ffprobe proxy utility class"""
     ffprobe_bin = '/usr/bin/ffprobe'
 
-    def __ffprobe(self, path):
-        cmd = [Probe.ffprobe_bin,
-               '-v', 'quiet',
-               '-show_format',
-               '-show_streams',
-               '-show_frames',
-               '-read_intervals', '%+#200',
-               '-print_format', 'json',
-               '-i', path]
-
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-        out, err = proc.communicate()
-        if out is not None and len(out):
-            return json.loads(out)
-        else:
-            return None
-
-    def __is_stream_actually_video(self, stream):
-        cn = stream['codec_name']
-        # these are listed as video streams, even though they aren't
-        if cn in ('ansi', 'png', 'jpeg', 'bmp'):
-            return False
-        if cn == 'mjpeg' and 'bit_rate' not in stream:
-            return False
-        return True
-
-    def __better_video_stream(self, a, b):
+    @staticmethod
+    def better_video_stream(a, b):
         cw = {
             'hevc': 100,
             'h264': 90,
@@ -62,7 +37,8 @@ class Probe:
 
         return b
 
-    def __better_audio_stream(self, a, b):
+    @staticmethod
+    def better_audio_stream(self, a, b):
         cw = {
             'flac': 100,
             'dts': 99,
@@ -88,6 +64,34 @@ class Probe:
                 return a
 
         return b
+
+
+
+    def __ffprobe(self, path):
+        cmd = [Probe.ffprobe_bin,
+               '-v', 'quiet',
+               '-show_format',
+               '-show_streams',
+               '-show_frames',
+               '-read_intervals', '%+#200',
+               '-print_format', 'json',
+               '-i', path]
+
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        out, err = proc.communicate()
+        if out is not None and len(out):
+            return json.loads(out)
+        else:
+            return None
+
+    def __is_stream_actually_video(self, stream):
+        cn = stream['codec_name']
+        # these are listed as video streams, even though they aren't
+        if cn in ('ansi', 'png', 'jpeg', 'bmp'):
+            return False
+        if cn == 'mjpeg' and 'bit_rate' not in stream:
+            return False
+        return True
 
     def __extension(self, format):
         formats = {
@@ -193,7 +197,7 @@ class Probe:
                     if best_vid is None:
                         best_vid = stream
                     else:
-                        best_vid = self.__better_video_stream(stream, best_vid)
+                        best_vid = Probe.better_video_stream(stream, best_vid)
                     if 'frames' in probe:
                         for frame in probe['frames']:
                             # some frames may not have a stream index
@@ -207,7 +211,7 @@ class Probe:
                     if best_aud is None:
                         best_aud = stream
                     else:
-                        best_aud = self.__better_audio_stream(stream, best_aud)
+                        best_aud = Probe.better_audio_stream(stream, best_aud)
 
                     # attempt to determine if there is an english audio stream
                     if not has_eng_aud:

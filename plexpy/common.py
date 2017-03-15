@@ -101,9 +101,9 @@ SCHEDULER_LIST = ['Check GitHub for updates',
                   'Refresh Plex server name',
                   'Backup PlexPy database',
                   'Backup PlexPy config',
-                  'Media Manager Scan Movies',
-                  'Media Manager Scan TV Shows',
-                  'Media Manager Scan Music'
+                  'Media Manager Process Movies',
+                  'Media Manager Process TV Shows',
+                  'Media Manager Process Music'
                   ]
 
 DATE_TIME_FORMATS = [

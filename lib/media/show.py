@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-
+ This module will extract meta information for a TV show from a given path.
+ It utilizes parsing the actual path and probing the file with a media probe
+ in order to accumulate the metadata.
 """
 
 from probe import Probe
 import os.path
 import re
+import tvdbsimple
 import util
 
 
-class Meta:
-    """ Meta """
+class File:
+    """ File """
     max_duration = float(60 * 60)  # 1hr
     min_size = (1024 * 1024 * 20)  # 20MB
 
@@ -156,6 +159,9 @@ class Meta:
     def __process(self, path, base_dir,
                   process_path=True, process_probe=True):
 
+        self.__dict__['show_id'] = None
+        self.__dict__['episode_id'] = None
+
         modpath = self.__modified_path(path, base_dir)
         self.__dict__['modpath'] = modpath
         self.__dict__['path'] = path
@@ -185,15 +191,15 @@ class Meta:
 
         # the other half is determined by the duration and format of the media
         c_media = util.Confidence()
-        c_media.add(self.duration < Meta.max_duration)
-        c_media.add(self.size >= Meta.min_size)
+        c_media.add(self.duration < File.max_duration)
+        c_media.add(self.size >= File.min_size)
 
         return (c_meta.rate() * 0.5) + (c_media.rate() * 0.5)
 
     def __build_file(self):
         out = ''
         if self.show_name is not None:
-            out = self.show_name
+            out = util.sanitize_path(self.show_name)
             if self.season != -1:
                 if self.episode_last != self.episode:
                     out += u' s{0:0=2}e{1:0=2}-e{2:0=2}'.format(
@@ -203,7 +209,7 @@ class Meta:
                         self.season, self.episode)
 
             if self.episode_name is not None:
-                out += u' {0}'.format(self.episode_name)
+                out += u' {0}'.format(util.sanitize_path(self.episode_name))
 
             out += u'.{0}'.format(self.extension)
         return out
@@ -211,7 +217,7 @@ class Meta:
     def __build_dir(self):
         out = u''
         if self.show_name is not None:
-            out = self.show_name
+            out = util.sanitize_path(self.show_name)
             if self.season != -1:
                 out += u'/Season {0:0=2}'.format(self.season)
         return out
@@ -234,19 +240,161 @@ class Meta:
             self.__dict__[attr] = val
 
     def __init__(self, path, base_dir=None):
+        if not os.path.isfile(path):
+            raise ValueError(u'Path "{0}" is not a valid file'.format(path))
+            return
+
+        if base_dir is not None and not os.path.isdir(base_dir):
+            raise ValueError(
+                u'Base directory "{0}" is not a valid directory'.format(
+                    base_dir))
+            return
+
         self.__process(path, base_dir)
 
     def __str__(self):
         return self.__build_file()
 
 
+class Search:
+    """
+    """
+    @staticmethod
+    def show_url(show_id):
+        return 'http://thetvdb.com/?tab=series&id={0}'.format(show_id)
+
+    @staticmethod
+    def season_url(show_id, season_id):
+        return 'http://thetvdb.com/?tab=season&seriesid={0}&seasonid={1}'.format(
+                   show_id, season_id)
+
+    @staticmethod
+    def episode_url(show_id, episode_id):
+        return 'http://thetvdb.com/?tab=episode&seriesid={0}&id={1}'.format(
+            show_id, episode_id)
+
+    def __init__(self, apikey):
+        tvdbsimple.KEYS.API_KEY = apikey
+        self.__dict__['_shows'] = {}
+        self.__dict__['_episodes'] = {}
+
+    def __getattr__(self, attr):
+        if attr in self.__dict__:
+            return self.__dict__[attr]
+        return None
+
+    def __setattr__(self, attr, val):
+        if attr in self.__dict__:
+            self.__dict__[attr] = val
+
+    def show(self, show):
+        """
+        searches for a given show name in The TVDB
+        and return a list of results in the order of relevance, based on the
+        the name match
+        """
+        if show is None:
+            return []
+
+        s_show = util.simplify_string(show)
+
+        if s_show in self._shows:
+            return [self._shows[s_show]]
+
+        search = tvdbsimple.Search()
+        search.series(show)
+        results = sorted(
+            search.series,
+            key=lambda a: util.simplify_string(a['seriesName']))
+        for r in results:
+            # cache new shows
+            s_rtitle = util.simplify_string(r['seriesName'])
+            if s_rtitle not in self._shows:
+                self._shows[s_rtitle] = r
+        return results
+
+    def show_info(self, show_id):
+        """
+        retrieves details for a given show_id
+        """
+        return tvdbsimple.Series(show_id).info()
+
+    def episode(self, show_id, season, episode):
+        """
+        retrieves an episode for a given show_id and season
+
+        :param show_id: the id of the show fetched with search_show
+        :param season: the season number that contains the episode to fetch
+        :param episode: the episode number to fetch info for
+        :return: info for the requested episode or None if it doesn't exist
+        """
+        if show_id not in self._episodes:
+            self._episodes[show_id] = {}
+
+        # if the season has already been cached, extract the episode
+        if season in self._episodes[show_id]:
+            episodes = self._episodes[show_id][season]
+        else:
+            # season has not been cached, so fetch it
+            episodes = tvdbsimple.Series_Episodes(
+                show_id, airedSeason=season).all()
+            # cache episodes for this season
+            self._episodes[show_id][season] = episodes
+
+        idx = episode-1
+        if len(episodes) >= episode:
+            return episodes[idx]
+        else:
+            return None
+
+    def episode_from_file(self, show):
+        """
+        convenience function to get an episode given
+        a show.File object that contains show/season/episode info
+        """
+        show_results = self.show(show.show_name)
+
+        if len(show_results) == 0:
+            return None
+
+        show_id = show_results[0]['id']
+        episode = self.episode(show_id, show.season, show.episode)
+
+        if episode is None:
+            return None
+
+        show.show_id = show_id
+        show.show_name = show_results[0]['seriesName']
+        show.episode_name = episode['episodeName']
+        show.episode_id = episode['id']
+
+        return show
+
+
 if __name__ == "__main__":
-    import sys
-    path = sys.argv[1].decode('utf-8')
-    base_dir = None
-    if len(sys.argv) > 2:
-        base_dir = sys.argv[2].decode('utf-8')
-    show = Meta(path, base_dir)
+    import argparse
+    parser = argparse.ArgumentParser(description='Media Show Module')
+    parser.add_argument('--basedir', '-b', default=None, metavar='DIR',
+                        help='The base directory to use for path filtering')
+    parser.add_argument('--search', '-s', default=None, metavar='TVDB_APIKEY',
+                        help='Flag to enable TVDB processing')
+    parser.add_argument('input', help='The input file to process')
+    args = parser.parse_args()
+
+    args.input = args.input.decode('utf-8')
+    if args.basedir is not None:
+        args.basedir = args.basedir.decode('utf-8')
+
+    show = File(args.input, args.basedir)
+    print u'Input = "{0}" (confidence:{1})'.format(args.input, show.confidence)
+    if args.search is not None:
+        show = Search(args.search).episode_from_file(show)
+
     if show is not None:
-        print u'Input = "{0}" (confidence: {1})'.format(path, show.confidence)
         print u'Output = "{0}/{1}"'.format(show.dir, show.file)
+        if show.show_id is not None:
+            print u'Show ID: {0}'.format(show.show_id)
+        if show.episode_id is not None:
+            print u'Episode ID: {0}'.format(show.episode_id)
+    else:
+        print u'Something went wrong...'

@@ -889,13 +889,13 @@
                             <h3>Movies</h3>
                         </div>
                         <div class="form-group">
-                            <label for="mm_movie_interval">Scan Interval</label>
+                            <label for="mm_movie_interval">Process Interval</label>
                             <div class="row">
                                 <div class="col-md-4">
                                     <input type="text" class="form-control http-settings" size="3" data-parsley-type="integer" id="mm_movie_interval" name="mm_movie_interval" value="${config['mm_movie_interval']}" data-parsley-trigger="change">
                                 </div>
                             </div>
-                            <p class="help-block">Interval (in mins) to scan for media. 0 = disable</p>
+                            <p class="help-block">Interval (in mins) to process movies. 0 = disable</p>
                             <label for="mm_movie_upload_dir">Upload Directory</label>
                             <div class="row">
                                 <div class="col-md-6">
@@ -910,7 +910,7 @@
                                 </div>
                             </div>
                             <p class="help-block">Library directory for movies to manage.</p>
-                            <label for="mm_movie_apikey">Movie API Key</label>
+                            <label for="mm_movie_apikey">TheMovieDB API Key</label>
                             <div class="row">
                                 <div class="col-md-6">
                                     <input type="text" class="form-control http-settings" id="mm_movie_apikey" name="mm_movie_apikey" value="${config['mm_movie_apikey']}" data-parsley-trigger="change">
@@ -922,13 +922,13 @@
                             <h3>TV Shows</h3>
                         </div>
                         <div class="form-group">
-                            <label for="mm_show_interval">Scan Interval</label>
+                            <label for="mm_show_interval">Process Interval</label>
                             <div class="row">
                                 <div class="col-md-4">
                                     <input type="text" class="form-control http-settings" size="3" data-parsley-type="integer" id="mm_show_interval" name="mm_show_interval" value="${config['mm_show_interval']}" data-parsley-trigger="change">
                                 </div>
                             </div>
-                            <p class="help-block">Interval (in mins) to scan for media. 0 = disable</p>
+                            <p class="help-block">Interval (in mins) to process TV shows. 0 = disable</p>
                             <label for="mm_show_upload_dir">Upload Directory</label>
                             <div class="row">
                                 <div class="col-md-6">
@@ -943,18 +943,25 @@
                                 </div>
                             </div>
                             <p class="help-block">Library directory for TV shows to manage.</p>
+                            <label for="mm_show_apikey">TheTVDB API Key</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control http-settings" id="mm_show_apikey" name="mm_show_apikey" value="${config['mm_show_apikey']}" data-parsley-trigger="change">
+                                </div>
+                            </div>
+                            <p class="help-block">TV Show (TVDB) API Key to access data</p>
 			</div>
                         <div class="padded-header">
                             <h3>Music</h3>
                         </div>
                         <div class="form-group">
-                            <label for="mm_music_interval">Scan Interval</label>
+                            <label for="mm_music_interval">Process Interval</label>
                             <div class="row">
                                 <div class="col-md-4">
                                     <input type="text" class="form-control http-settings" size="3" data-parsley-type="integer" id="mm_music_interval" name="mm_music_interval" value="${config['mm_music_interval']}" data-parsley-trigger="change">
                                 </div>
                             </div>
-                            <p class="help-block">Interval (in mins) to scan for media. 0 = disable</p>
+                            <p class="help-block">Interval (in mins) to process music. 0 = disable</p>
                             <label for="mm_music_upload_dir">Upload Directory</label>
                             <div class="row">
                                 <div class="col-md-6">

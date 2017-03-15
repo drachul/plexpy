@@ -290,6 +290,7 @@ _CONFIG_DEFINITIONS = {
     'MM_SHOW_INTERVAL': (int, 'MediaManager', 0),
     'MM_SHOW_UPLOAD_DIR': (str, 'MediaManager', ''),
     'MM_SHOW_LIBRARY_DIR': (str, 'MediaManager', ''),
+    'MM_SHOW_APIKEY': (str, 'MediaManager', ''),
     'MM_MUSIC_INTERVAL': (int, 'MediaManager', 0),
     'MM_MUSIC_UPLOAD_DIR': (str, 'MediaManager', ''),
     'MM_MUSIC_LIBRARY_DIR': (str, 'MediaManager', ''),
