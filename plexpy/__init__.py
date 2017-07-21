@@ -571,6 +571,7 @@ def dbcheck():
     )
     c_db.execute(
         'CREATE UNIQUE INDEX IF NOT EXISTS idx_tvmaze_lookup_thetvdb_id ON tvmaze_lookup (thetvdb_id);'
+    )
 
     # mm_movies table :: This table keeps record of incoming movie files needing to be managed
     c_db.execute(

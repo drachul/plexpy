@@ -2645,7 +2645,7 @@ class WebInterface(object):
             "git_remote": plexpy.CONFIG.GIT_REMOTE,
             "movie_watched_percent": plexpy.CONFIG.MOVIE_WATCHED_PERCENT,
             "tv_watched_percent": plexpy.CONFIG.TV_WATCHED_PERCENT,
-            "music_watched_percent": plexpy.CONFIG.MUSIC_WATCHED_PERCENT
+            "music_watched_percent": plexpy.CONFIG.MUSIC_WATCHED_PERCENT,
             "mm_movie_interval": plexpy.CONFIG.MM_MOVIE_INTERVAL,
             "mm_movie_upload_dir": plexpy.CONFIG.MM_MOVIE_UPLOAD_DIR,
             "mm_movie_library_dir": plexpy.CONFIG.MM_MOVIE_LIBRARY_DIR,
@@ -2656,8 +2656,7 @@ class WebInterface(object):
             "mm_show_apikey": plexpy.CONFIG.MM_SHOW_APIKEY,
             "mm_music_interval": plexpy.CONFIG.MM_MUSIC_INTERVAL,
             "mm_music_upload_dir": plexpy.CONFIG.MM_MUSIC_UPLOAD_DIR,
-            "mm_music_library_dir": plexpy.CONFIG.MM_MUSIC_LIBRARY_DIR,
-            "pms_version": plexpy.CONFIG.PMS_VERSION
+            "mm_music_library_dir": plexpy.CONFIG.MM_MUSIC_LIBRARY_DIR
         }
 
         return serve_template(templatename="settings.html", title="Settings", config=config, kwargs=kwargs)
