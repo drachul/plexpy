@@ -183,12 +183,12 @@ class File:
             if 'tags' in probe.format:
                 for k, v in probe.format['tags'].iteritems():
                     if not has_artist and re.search(ur"^artist", k, re.I):
-                        self.__dict__['artist'] = v.decode('utf-8')
+                        self.__dict__['artist'] = self.__clean_music(v)
                     elif re.search(ur"album_?artist", k, re.I):
-                        self.__dict__['artist'] = v.decode('utf-8')
+                        self.__dict__['artist'] = self.__clean_music(v)
                         has_artist = True
                     elif re.search(ur"album", k, re.I):
-                        self.__dict__['album'] = v.decode('utf-8')
+                        self.__dict__['album'] = self.__clean_music(v)
                     elif not has_year and re.search(ur"^year|date$", k, re.I):
                         m = re.search(ur"((?:19|20)\d{2})", v, re.I)
                         if m is not None:
@@ -199,7 +199,7 @@ class File:
                         if m is not None:
                             self.__dict__['track'] = int(m.group(1))
                     elif re.search(ur"title", k, re.I):
-                            self.__dict__['title'] = v.decode('utf-8')
+                            self.__dict__['title'] = self.__clean_music(v)
 
             ext = probe.extension()
             if ext is not None:

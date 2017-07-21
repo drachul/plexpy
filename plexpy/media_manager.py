@@ -19,7 +19,6 @@ import threading
 
 __HEADING = 'PlexPy Media Manager'
 
-
 __movies_lock = threading.Lock()
 __shows_lock = threading.Lock()
 __music_lock = threading.Lock()
@@ -102,16 +101,20 @@ def __del_files(db, table):
     for r in results:
         if not os.path.isfile(r['path']):
             __logdebug(u'Removing entry with file: "{0}"'.format(r['path']))
-            ids_to_del.append(r['id'])
+            ids_to_del.append(str(r['id']))
+
+    #__logdebug("IDs to delete: {0}".format(ids_to_del))
 
     if len(ids_to_del) == 0:
-        return
+        return None
 
     query = 'DELETE from {0} where id in ({1})'.format(
         table, '?' + ',?' * (len(ids_to_del)-1))
 
+    #__logdebug("delete query: '{0}'".format(query))
+
     try:
-        db.action(table, query, args=ids_to_del)
+        db.action(query, ids_to_del)
     except Exception as e:
         __logwarn(u"Unable to perform delete: {0}".format(e))
 

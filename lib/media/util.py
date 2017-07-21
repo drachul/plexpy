@@ -54,10 +54,10 @@ def clean_media(s):
     # remove scene tags
     scene_tags = ['-2HD',
                   '-aAF', '-AMIABLE', '-AVCHD',
-                  '-BATV', '-BLOW', '-BRMP', '-BTN', '-BTW',
+                  '-BATV', '-BiPOLAR', '-BLOW', '-BRMP', '-BTN', '-BTW',
                   '-CiNEFiLE', '-CREEPSHOW', '-CROOKS', '-CULTHD',
                   '-DEFLATE', '-DIMENSION',
-                  '-ehMD', '\[ettv\]', '\[EtHD\]',
+                  '-ehMD', '\[ettv\]', '\[EtHD\]', '-EiDER',
                   '(-ETRG|\[ETRG\])', '-EVO', '-EVOLVE',
                   '-FGT',
                   '-GECKOS', '-GUACAMOLE',
@@ -65,18 +65,19 @@ def clean_media(s):
                   '-JYK',
                   '-KILLERS',
                   '-KiNGS',
-                  '-LiBRARiANS',
-                  '-MARS', '-MAXSPEED', '-MCH', '-MOROSE', '-MOVEE',
+                  '-LCHD', '-LiBRARiANS', '-LIVIDITY',
+                  '-MAiN', '-MARS', '-MAXSPEED', '-MCH', '-monkee',
+                  '-MOROSE', '-MOVEE',
                   '-mSD', 'MVGroup(?:\.org)?', 'MkvCage',
-                  '-NOGRP', '-NTb',
+                  '-NODLABS', '-NOGRP', '-NTb',
                   '-PSYCHD',
-                  '-REMARKABLE',
+                  '-REGRET', '-REMARKABLE',
                   '-SADPANDA', '-SB', '-SERIOUSLY', 'ShAaNiG',
                   '-SiNNERS', '-SORNY', '-SPARKS', '-SPRiNTER',
                   '-RARBG', '\[rarbg\]', '\[rartv\]', '-RTN',
-                  '-TASTETV', '-TiMELORDS', '-TrollU?HD',
+                  '-TASTETV', '-THUGLiNE', '-TiMELORDS', '-TrollU?HD',
                   '-VoMiT',
-                  '-W4F', 'www\.torrenting\.com',
+                  '-W4F', '-WiDE', 'www\.torrenting\.com',
                   'YIFY']
     s = list_re_del(scene_tags, s, re.UNICODE)
 
@@ -107,15 +108,17 @@ def clean_media(s):
     return clean_string(s)
 
 
-def detect_meta(path, min_confidence=0.0):
+def detect_media(path, base_dir, min_confidence=0.0):
     import movie
     import music
     import show
     best_c = 0.0
     meta = None
-    media = [movie.Meta(path), music.Meta(path), show.Meta(path)]
+    media = [movie.File(path, base_dir),
+             music.File(path, base_dir),
+             show.File(path, base_dir)]
     for m in media:
-        c = m.confidence()
+        c = m.confidence
         if c > min_confidence and c > best_c:
             meta = m
             best_c = c

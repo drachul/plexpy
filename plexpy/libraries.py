@@ -297,6 +297,223 @@ class Libraries(object):
         
         return dict
 
+    def __get_download_movies(self, section_type):
+        monitor_db = database.MonitorDatabase()
+        table = 'mm_movies'
+
+    def get_datatables_media_downloads(self, section_type, rating_key, kwargs=None):
+        default_return = {'recordsFiltered': 0,
+                          'recordsTotal': 0,
+                          'draw': 0,
+                          'data': 'null',
+                          'error': 'Unable to execute database query.'}
+
+        if not section_type:
+            logger.warn(u"PlexPy Libraries :: Datatable media downloads called by invalid section_type provided.")
+            return default_return
+        elif section_type == 'photo':
+            return {'recordsFiltered': 0,
+                    'recordsTotal': 0,
+                    'draw': 0,
+                    'data': 'null',
+                    'error': 'Photos not supported.'}
+
+        movies_table = 'mm_movies'
+        shows_table = 'mm_shows'
+        music_table = 'mm_music'
+
+        # Get media downloads
+
+        if section_type == 'show':
+            group_by = 'show_id'
+        elif section_type == 'artist':
+            group_by = 'artist_id'
+        elif section_type == 'season':
+            group_by = 'show_id'
+        elif section_type == 'album':
+            group_by = 'album_id'
+        elif section_type == 'episode':
+            group_by = 'episode_id'
+        elif section_type == 'track':
+            group_by = 'track_id'
+        elif section_type == 'movie':
+            group_by = 'movie_id'
+        else:
+            group_by = 'rating_key'
+
+        table = 'mm_{0}'.join(section_type)
+
+        try:
+            query = 'SELECT MAX(session_history.started) AS last_played, COUNT(DISTINCT session_history.%s) AS play_count, ' \
+                    'session_history.rating_key, session_history.parent_rating_key, session_history.grandparent_rating_key ' \
+                    'FROM session_history ' \
+                    'JOIN session_history_metadata ON session_history.id = session_history_metadata.id ' \
+                    'WHERE session_history_metadata.section_id = ? ' \
+                    'GROUP BY session_history.%s ' % (count_by, group_by)
+            result = monitor_db.select(query, args=[section_id])
+        except Exception as e:
+            logger.warn(u"PlexPy Libraries :: Unable to execute database query for get_datatables_media_info2: %s." % e)
+            return default_return
+
+        watched_list = {}
+        for item in result:
+            watched_list[str(item[group_by])] = {'last_played': item['last_played'],
+                                                 'play_count': item['play_count']}
+
+        rows = []
+        # Import media info cache from json file
+        if rating_key:
+            try:
+                inFilePath = os.path.join(plexpy.CONFIG.CACHE_DIR,'media_info_%s-%s.json' % (section_id, rating_key))
+                with open(inFilePath, 'r') as inFile:
+                    rows = json.load(inFile)
+                    library_count = len(rows)
+            except IOError as e:
+                #logger.debug(u"PlexPy Libraries :: No JSON file for rating_key %s." % rating_key)
+                #logger.debug(u"PlexPy Libraries :: Refreshing data and creating new JSON file for rating_key %s." % rating_key)
+                pass
+        elif section_id:
+            try:
+                inFilePath = os.path.join(plexpy.CONFIG.CACHE_DIR,'media_info_%s.json' % section_id)
+                with open(inFilePath, 'r') as inFile:
+                    rows = json.load(inFile)
+                    library_count = len(rows)
+            except IOError as e:
+                #logger.debug(u"PlexPy Libraries :: No JSON file for library section_id %s." % section_id)
+                #logger.debug(u"PlexPy Libraries :: Refreshing data and creating new JSON file for section_id %s." % section_id)
+                pass
+
+        # If no cache was imported, get all library children items
+        cached_items = {d['rating_key']: d['file_size'] for d in rows}
+
+        if refresh or not rows:
+            pms_connect = pmsconnect.PmsConnect()
+
+            if rating_key:
+                library_children = pms_connect.get_library_children_details(rating_key=rating_key,
+                                                                            get_media_info=True)
+            elif section_id:
+                library_children = pms_connect.get_library_children_details(section_id=section_id,
+                                                                            section_type=section_type,
+                                                                            get_media_info=True)
+            
+            if library_children:
+                library_count = library_children['library_count']
+                children_list = library_children['childern_list']
+            else:
+                logger.warn(u"PlexPy Libraries :: Unable to get a list of library items.")
+                return default_return
+            
+            new_rows = []
+            for item in children_list:
+                cached_file_size = cached_items.get(item['rating_key'], None)
+                file_size = cached_file_size if cached_file_size else item.get('file_size', '')
+
+                row = {'section_id': library_details['section_id'],
+                       'section_type': library_details['section_type'],
+                       'added_at': item['added_at'],
+                       'media_type': item['media_type'],
+                       'rating_key': item['rating_key'],
+                       'parent_rating_key': item['parent_rating_key'],
+                       'grandparent_rating_key': item['grandparent_rating_key'],
+                       'title': item['title'],
+                       'year': item['year'],
+                       'media_index': item['media_index'],
+                       'parent_media_index': item['parent_media_index'],
+                       'thumb': item['thumb'],
+                       'container': item.get('container', ''),
+                       'bitrate': item.get('bitrate', ''),
+                       'video_codec': item.get('video_codec', ''),
+                       'video_resolution': item.get('video_resolution', ''),
+                       'video_framerate': item.get('video_framerate', ''),
+                       'audio_codec': item.get('audio_codec', ''),
+                       'audio_channels': item.get('audio_channels', ''),
+                       'file_size': file_size
+                       }
+                new_rows.append(row)
+
+            rows = new_rows
+            if not rows:
+                return default_return
+
+            # Cache the media info to a json file
+            if rating_key:
+                try:
+                    outFilePath = os.path.join(plexpy.CONFIG.CACHE_DIR,'media_info_%s-%s.json' % (section_id, rating_key))
+                    with open(outFilePath, 'w') as outFile:
+                        json.dump(rows, outFile)
+                except IOError as e:
+                    logger.debug(u"PlexPy Libraries :: Unable to create cache file for rating_key %s." % rating_key)
+            elif section_id:
+                try:
+                    outFilePath = os.path.join(plexpy.CONFIG.CACHE_DIR,'media_info_%s.json' % section_id)
+                    with open(outFilePath, 'w') as outFile:
+                        json.dump(rows, outFile)
+                except IOError as e:
+                    logger.debug(u"PlexPy Libraries :: Unable to create cache file for section_id %s." % section_id)
+
+        # Update the last_played and play_count
+        for item in rows:
+            watched_item = watched_list.get(item['rating_key'], None)
+            if watched_item:
+                item['last_played'] = watched_item['last_played']
+                item['play_count'] = watched_item['play_count']
+            else:
+                item['last_played'] = None
+                item['play_count'] = None
+
+        results = []
+        
+        # Get datatables JSON data            
+        if kwargs.get('json_data'):
+            json_data = helpers.process_json_kwargs(json_kwargs=kwargs.get('json_data'))
+            #print json_data
+
+        # Search results
+        search_value = json_data['search']['value'].lower()
+        if search_value:
+            searchable_columns = [d['data'] for d in json_data['columns'] if d['searchable']]
+            for row in rows:
+                for k,v in row.iteritems():
+                    if k in searchable_columns and search_value in v.lower():
+                        results.append(row)
+                        break
+        else:
+            results = rows
+
+        filtered_count = len(results)
+
+        # Sort results
+        results = sorted(results, key=lambda k: k['title'])
+        sort_order = json_data['order']
+        for order in reversed(sort_order):
+            sort_key = json_data['columns'][int(order['column'])]['data']
+            reverse = True if order['dir'] == 'desc' else False
+            if rating_key and sort_key == 'title':
+                results = sorted(results, key=lambda k: helpers.cast_to_int(k['media_index']), reverse=reverse)
+            elif sort_key == 'file_size' or sort_key == 'bitrate':
+                results = sorted(results, key=lambda k: helpers.cast_to_int(k[sort_key]), reverse=reverse)
+            else:
+                results = sorted(results, key=lambda k: k[sort_key], reverse=reverse)
+
+        total_file_size = sum([helpers.cast_to_int(d['file_size']) for d in results])
+
+        # Paginate results
+        results = results[json_data['start']:(json_data['start'] + json_data['length'])]
+
+        filtered_file_size = sum([helpers.cast_to_int(d['file_size']) for d in results])
+
+        dict = {'recordsFiltered': filtered_count,
+                'recordsTotal': library_count,
+                'data': results,
+                'draw': int(json_data['draw']),
+                'filtered_file_size': filtered_file_size,
+                'total_file_size': total_file_size
+                }
+        
+        return dict
+
+
     def get_datatables_media_info(self, section_id=None, section_type=None, rating_key=None, refresh=False, kwargs=None):
         default_return = {'recordsFiltered': 0,
                           'recordsTotal': 0,

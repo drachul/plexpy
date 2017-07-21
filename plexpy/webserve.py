@@ -506,7 +506,7 @@ class WebInterface(object):
             logger.debug(u"Library page requested but no section_id received.")
             return serve_template(templatename="library.html", title="Library", data=None, config=config)
 
-        return serve_template(templatename="library.html", title="Library", data=library_details, config=config)
+        return serve_template(templatename="library.html", title="Library", data=library_details, config=config)       
 
     @cherrypy.expose
     @requireAuth(member_of("admin"))
@@ -630,6 +630,44 @@ class WebInterface(object):
         else:
             logger.warn(u"Unable to retrieve data for library_recently_added.")
             return serve_template(templatename="library_recently_added.html", data=None, title="Recently Added")
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @requireAuth(member_of("admin"))
+    @addtoapi()
+    def get_library_media_downloads(self, section_type=None, rating_key=None, **kwargs):
+        """ Get the currently staged downloads for the given section type.
+            ```
+                Required parameters:
+                    section_type (str):         "movie", "show", "artist", "photo"
+                    rating_key (str):           The grandparent or parent rating key
+
+                Optional parameters:
+
+                    order_column (str):         "title", "mediaid"
+                    order_dir (str):            "desc" or "asc"
+                    start (int):                Row to start from, default 0
+                    length (int):               Number of items to return, default 25
+                    search (str):               A string to search for, "Thrones"
+            ```
+        """
+        # Check if datatables json_data was received.
+        # If not, then build the minimal amount of json data for a query
+        if not kwargs.get('json_data'):
+            # TODO: Find some one way to automatically get the columns
+            dt_columns = [("title", True, True),
+                          ("filecount", False, False)]
+            kwargs['json_data'] = build_datatables_json(
+                kwargs, dt_columns, "title")
+
+        library_data = libraries.Libraries()
+        result = library_data.get_datatables_media_downloads(
+            section_type=section_type,
+            rating_key=rating_key,
+            kwargs=kwargs)
+
+        return result
+
 
     @cherrypy.expose
     @cherrypy.tools.json_out()

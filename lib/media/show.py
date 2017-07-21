@@ -32,7 +32,7 @@ class File:
         # SSxEE type episodes
         m2 = re.search(ur"(\d{1,2})((?:\s*(?:x|-)\s*\d{1,3})+)", p, re.I)
         # Season by itself
-        m3 = re.search(ur"s(?:eason)?\W?(\d{1,2})", p, re.I)
+        m3 = re.search(ur"\W+s(?:eason)?\W?(\d{1,2})", p, re.I)
         # Episode by itself (start of name)
         m4 = re.search(ur"^\s*(?:p(?:ar)?t)?\s*(\d{1,3})", p, re.I)
         # Episode by itself - miniseries (X of Y)
@@ -183,7 +183,7 @@ class File:
         c_meta.add(self.show_name is not None)
         c_meta.add(self.season != -1)
         c_meta.add(self.episode != -1)
-        c_meta.add(self.show_name is not None)
+        # c_meta.add(self.show_name is not None)
 
         # if this doesn't have video, force to 0
         if not self.has_video:

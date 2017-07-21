@@ -38,7 +38,7 @@ class Probe:
         return b
 
     @staticmethod
-    def better_audio_stream(self, a, b):
+    def better_audio_stream(a, b):
         cw = {
             'flac': 100,
             'dts': 99,
@@ -64,8 +64,6 @@ class Probe:
                 return a
 
         return b
-
-
 
     def __ffprobe(self, path):
         cmd = [Probe.ffprobe_bin,
