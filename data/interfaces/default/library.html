@@ -299,12 +299,12 @@ DOCUMENTATION :: END
                                         </div>
                                     </div>
                                     <div class="table-card-back">
-                                        <table class="display media_download_table" id="media_download_table-SID-${data['section_id']}" width="100%">
+                                        <table class="display media_download_table" id="media_download_table-ST-${data['section_type']}" width="100%">
                                             <thead>
                                                 <tr>
-						    <th align="center" id="activity">Activity</th>
                                                     <th align="left" id="title">Title</th>
-						    <th align="left" id="filecount">File Count</th>
+						    <th align="center" id="confidence">Confidence</th>
+						    <th align="right" id="activity"></th>
                                                 </tr>
                                             </thead>
                                             <tbody></tbody>
@@ -405,7 +405,7 @@ DOCUMENTATION :: END
     % else:
     var section_id = null;
     % endif
-    var section_type = ${data['section_type']};
+    var section_type = '${data['section_type']}';
     var section_name = '${data['section_name'].replace("'", "\\'")}';
     var refresh_table = false;
 
@@ -418,6 +418,7 @@ DOCUMENTATION :: END
 <script src="${http_root}js/moment-with-locale.js"></script>
 <script src="${http_root}js/tables/history_table.js"></script>
 <script src="${http_root}js/tables/media_info_table.js"></script>
+<script src="${http_root}js/tables/media_download_table.js"></script>
 <script>
     $(document).ready(function () {
         $("#edit-library-tooltip").tooltip();
@@ -508,22 +509,28 @@ DOCUMENTATION :: END
         function loadMediaDownloadTable() {
             // Build media download table
             media_download_table_options.ajax = {
-                url: 'get_library_media_downloads',
-                type: 'post',
-                data: function ( d ) {
-                    return { 
-                        json_data: JSON.stringify( d ),
-                        section_type: section_type
+                "url": 'get_library_media_downloads',
+                "type": "POST",
+                "data": function (d) {
+                    return {
+                        //json_data: JSON.stringify(d),
+                        section_type: section_type,
                     };
                 }
             }
-            media_info_table = $('#media_download_table-SID-${data["section_id"]}').DataTable(media_download_table_options);
+            data = media_download_table_options.ajax.data
+            media_download_table = $('#media_download_table-ST-${data["section_type"]}').DataTable(media_download_table_options);
 
-            var colvis = new $.fn.dataTable.ColVis(media_info_table, { buttonText: '<i class="fa fa-columns"></i> Select columns', buttonClass: 'btn btn-dark' });
-            $(colvis.button()).appendTo('#button-bar-media-info');
+            
+            //var colvis = new $.fn.dataTable.ColVis(media_download_table, { buttonText: '<i class="fa fa-columns"></i> Select columns', buttonClass: 'btn btn-dark' });
+            //$(colvis.button()).appendTo('#button-bar-media-download');
 
-            clearSearchButton('media_info_table-SID-${data["section_id"]}', media_info_table);
+            clearSearchButton('media_download_table-ST-${data["section_type"]}', media_download_table);
         }
+
+        $( "#media-download-tab-btn" ).one( "click", function() {
+            loadMediaDownloadTable();
+        });
         
 
         // Load edit library modal

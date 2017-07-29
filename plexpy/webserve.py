@@ -639,7 +639,7 @@ class WebInterface(object):
         """ Get the currently staged downloads for the given section type.
             ```
                 Required parameters:
-                    section_type (str):         "movie", "show", "artist", "photo"
+                    section_type (str):         "movie", "show", "season", "episode", "artist", "album", "track"
                     rating_key (str):           The grandparent or parent rating key
 
                 Optional parameters:
@@ -651,23 +651,36 @@ class WebInterface(object):
                     search (str):               A string to search for, "Thrones"
             ```
         """
+        logger.debug(u"get_media_downloads({0}, {1})".format(section_type, rating_key))
         # Check if datatables json_data was received.
         # If not, then build the minimal amount of json data for a query
         if not kwargs.get('json_data'):
             # TODO: Find some one way to automatically get the columns
             dt_columns = [("title", True, True),
-                          ("filecount", False, False)]
+                          ("confidence", True, False),
+                          ("info", False, False),
+                          ("activity", False, False)]
             kwargs['json_data'] = build_datatables_json(
                 kwargs, dt_columns, "title")
 
         library_data = libraries.Libraries()
-        result = library_data.get_datatables_media_downloads(
-            section_type=section_type,
-            rating_key=rating_key,
-            kwargs=kwargs)
+        try:
+            result = library_data.get_datatables_media_downloads(
+                section_type=section_type,
+                kwargs=kwargs
+            )
+        except Exception as e:
+            logger.warn(u"Unable to retrieve media downloads: {0}".format(e))
+            return {
+                'recordsFiltered': 0,
+                'recordsTotal': 0,
+                'draw': 0,
+                'data': 'null',
+                'error': 'Unable to retrieve media downloads: {0}'.format(e)}
+
+        logger.debug(u"result={0}".format(result))
 
         return result
-
 
     @cherrypy.expose
     @cherrypy.tools.json_out()

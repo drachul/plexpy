@@ -2679,11 +2679,14 @@ class SLACK(Notifier):
                        }
 
     def notify(self, subject='', body='', action='', **kwargs):
-        if not subject or not body:
+        if not subject and not body:
             return
 
         if self.config['incl_subject']:
-            text = subject.encode('utf-8') + '\r\n' + body.encode("utf-8")
+            if body:
+                text = subject.encode('utf-8') + '\r\n' + body.encode("utf-8")
+            else:
+                text = subject.encode('utf-8')
         else:
             text = body.encode("utf-8")
 
